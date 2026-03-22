@@ -3,5 +3,12 @@
 ## how to run
 ```
 npm install
-npm run init
+```
+#### for production
+```
+npm run start
+```
+#### for development (with hotreloading)
+```
+npm run dev
 ```
