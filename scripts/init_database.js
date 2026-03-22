@@ -1,9 +1,13 @@
-const fs = require('fs');
-const path = require('path');
-const sqlite3 = require('sqlite3');
+import fs from 'fs';
+import path from 'path';
+import sql3 from 'sqlite3';
+
+const sqlite3 = sql3.verbose();
 
 const root = process.cwd();
-const DB_FILE = path.join(root, 'sports_calendar.db');
+const db_filename = 'sports_calendar.db';
+
+const DB_FILE = path.join(root, db_filename);
 const schema_file = path.join(root, 'db', 'schema.sql');
 
 const schemaSql = fs.readFileSync(schema_file, 'utf-8');
@@ -18,3 +22,5 @@ db.exec(schemaSql, (err) => {
   console.log('Schema was applied sucessfully');
   db.close();
 });
+
+export {db_filename};
