@@ -58,7 +58,9 @@ app.get('/api/events', async (req, res) => {
                 Team t ON et._team_id = t.team_id    
             GROUP BY 
                 e.event_id
-            `;
+            ORDER BY 
+                e.start_datetime DESC
+        `;
             
         const rows = await dbAll(sql);
 
@@ -100,13 +102,20 @@ app.get('/api/events/:id', async (req, res) => {
                                ')', 
                                ' vs '
                             ) AS team_details
-            FROM Event e
-            JOIN Sport s ON e._sport_id = s.sport_id
-            JOIN Venue v ON e._venue_id = v.venue_id
-            JOIN Event_Team et ON e.event_id = et._event_id
-            JOIN Team t ON et._team_id = t.team_id    
-            WHERE e.event_id = ?
-            GROUP BY e.event_id
+            FROM 
+                Event e
+            JOIN 
+                Sport s ON e._sport_id = s.sport_id
+            JOIN 
+                Venue v ON e._venue_id = v.venue_id
+            JOIN 
+                Event_Team et ON e.event_id = et._event_id
+            JOIN 
+                Team t ON et._team_id = t.team_id    
+            WHERE 
+                e.event_id = ?
+            GROUP BY 
+                e.event_id
         `;
 
         const row = await dbGet(sql, [eventId]);
