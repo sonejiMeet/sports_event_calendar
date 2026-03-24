@@ -1,20 +1,23 @@
 import express from 'express';
-import bodyParser from 'body-parser';
 import { DB } from './connect.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
 
-app.get('/', (req, res) => {
-  res.status(200).send('Sports event calendar service is online');
-});
+app.use(express.json());
+app.use(express.static('public'));
 
 
 function dbGet(sql, params = []) {
     return new Promise((resolve, reject) => {
         DB.get(sql, params, (err, row) => (err ? reject(err) : resolve(row)));
+    });
+}
+
+function dbAll(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        DB.all(sql, params, (err, row) => (err ? reject(err) : resolve(row)));
     });
 }
 
@@ -27,46 +30,115 @@ function dbRun(sql, params = []) {
     });
 }
 
-app.get('/api/events', (req, res) => {
-    res.set('content-type', 'application/json');
+app.get('/api/events', async (req, res) => {
 
-  // query to get each event with joined corresponding sport, venue and teams from their id
-    const sql = `
-    SELECT
-        e.event_id,
-        e.start_datetime,
-        e.end_datetime,
-        e.title,
-        e.description,
-        s.name AS sport,
-        v.name AS venue,
-        v.city AS venue_city,
-        v.country AS venue_country,
-        GROUP_CONCAT(t.name, ' vs ') AS teams
-    FROM 
-        Event e
-    JOIN 
-        Sport s ON e._sport_id = s.sport_id
-    JOIN 
-        Venue v ON e._venue_id = v.venue_id
-    JOIN 
-        Event_Team et ON e.event_id = et._event_id
-    JOIN 
-        Team t ON et._team_id = t.team_id    
-    GROUP BY 
-        e.event_id
-    `;
+    try{
+    // query to get each event with joined corresponding sport, venue and teams from their id
+        const sql = `
+            SELECT
+                e.event_id,
+                e.start_datetime,
+                e.end_datetime,
+                e.title,
+                e.description,
+                s.name AS sport,
+                v.name AS venue,
+                v.city AS venue_city,
+                v.country AS venue_country,
+                GROUP_CONCAT(t.name, ' vs ') AS teams
+            FROM 
+                Event e
+            JOIN 
+                Sport s ON e._sport_id = s.sport_id
+            JOIN 
+                Venue v ON e._venue_id = v.venue_id
+            JOIN 
+                Event_Team et ON e.event_id = et._event_id
+            JOIN 
+                Team t ON et._team_id = t.team_id    
+            GROUP BY 
+                e.event_id
+            `;
+            
+        const rows = await dbAll(sql);
 
-    DB.all(sql, [], (err, rows) => {
-        if(err){
-            console.log(err.message);
-            return;
-        }
-        
-        res.status(200).send(JSON.stringify({ events: rows }));
-    });
+        res.status(200).json({events: rows});
 
+    }catch(err){
+        console.error(err.message);
+        res.status(500).json({error: err.message});
+    }
 });
+
+app.get('/api/events/:id', async (req, res) => {
+    
+    try{
+        const eventId = Number(req.params.id);
+        
+        // get one event by its id
+        // this will be used to expand an event on the index page to query a more detailed info about that event  
+        const sql = `
+            SELECT
+                e.event_id,
+                e.start_datetime,
+                e.end_datetime,
+                e.title,
+                e.description,
+                s.name AS sport,
+                s.description as sport_description,
+                v.name AS venue,
+                v.address,
+                v.city AS venue_city,
+                v.country AS venue_country,
+                v.capacity,
+                GROUP_CONCAT(t.name, ' vs ') AS teams,
+                GROUP_CONCAT(t.name || 
+                               ' (' || 
+                                COALESCE(t.city, '') || 
+                               ', ' || 
+                                COALESCE(t.country, '') || 
+                               ')', 
+                               ' vs '
+                            ) AS team_details
+            FROM Event e
+            JOIN Sport s ON e._sport_id = s.sport_id
+            JOIN Venue v ON e._venue_id = v.venue_id
+            JOIN Event_Team et ON e.event_id = et._event_id
+            JOIN Team t ON et._team_id = t.team_id    
+            WHERE e.event_id = ?
+            GROUP BY e.event_id
+        `;
+
+        const row = await dbGet(sql, [eventId]);
+
+        if(!row) return res.status(404).json({error: 'Event was not found'});
+
+        res.status(200).json({event: row});
+
+    }catch(err){
+        console.error(err.message);
+        res.status(500).json({error: err.message});
+    }
+        
+});
+
+
+
+
+// app.post('/api/events', async (req, res) =>{
+    
+//     try{
+
+//         res.json({message: 'Event created successfully'});
+
+//     }catch(err){
+//         console.error(err.message);
+//         res.status(500).json({error: err.message});
+//     }
+
+// });
+
+
 
 async function insert_data_if_empty() {
 

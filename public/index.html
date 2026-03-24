@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+    <head><title>Sports events</title></head>
+<body onload="show_section('events_section')">
+    <h1>Sports events</h1>
+
+    <button type="button" onclick="show_section('events_section')">Events</button>
+    <button type="button" onclick="show_section('admin_section')">Admin</button>
+
+<hr>
+
+<div id="events_section">
+    <h2>Upcoming Events</h2>
+    <div id="eventsList">Loading events...</div>
+    
+</div>
+
+<div id="admin_section">
+    <h2>Event Form</h2>
+    <p id="admin_message"></p>
+</div>
+
+<dialog id="eventDialog">
+    <div id="eventDetails"></div>
+    <button type="button" onclick="document.getElementById('eventDialog').close()">Close</button>
+</dialog>
+
+
+<script>
+
+    function show_section(id) {
+        document.querySelectorAll('#events_section, #admin_section')
+        .forEach(s => s.style.display = 'none');
+        const el = document.getElementById(id);
+        el.style.display = 'block';
+
+        if (id === 'events_section') {
+            load_events();
+        }
+        if (id === 'admin_section') {
+            const msg = document.getElementById('admin_message');
+            msg.textContent = 'event form for admin not done yet';
+        }
+    }
+
+
+    async function load_events(){
+        const events_list = document.getElementById('eventsList');
+        
+        try{
+            const res = await fetch('/api/events');
+            const data = await res.json();
+
+            let html='';
+            for(const e of data.events){
+                html+= `
+                    <div style="border: 1px solid #ccc; margin: 4px 0; padding: 4px 6px;">
+                        <strong>
+                            ${e.title} (${e.sport})
+                        </strong>
+                        <div style="margin-top: 4px;">
+                            <strong>Venue:</strong> ${e.venue}, ${e.venue_city}, ${e.venue_country}<br>
+                            <strong>Date:</strong> ${e.start_datetime}<br>
+                            <strong>Teams:</strong> ${e.teams}<br>
+                            <button type="button" onclick="load_event_details(${e.event_id})" style="margin-top: 8px; padding: 4px 8px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-family: inherit; font-size: inherit;">
+                                Show Details
+                            </button>
+                        </div>
+                    </div>
+                
+                `;
+            }
+            events_list.innerHTML=html;
+        }catch(err){
+            events_list.innerHTML='Network error while loading events';
+        }
+    }
+
+
+    async function load_event_details(id){
+        const dialog=document.getElementById('eventDialog');
+        const details=document.getElementById('eventDetails');
+        dialog.showModal();
+        try{
+            const res = await fetch(`/api/events/${id}`);
+            const data = await res.json();
+            
+            const e = data.event;
+            details.innerHTML=`
+                <h3>${e.title}</h3>
+                <hr>
+                <p><strong>Start:</strong> ${e.start_datetime}</p>
+                <p><strong>End:</strong> ${e.end_datetime}</p>
+                <p><strong>Sport:</strong> ${e.sport}</p>
+                ${e.sport_description ? `<p>${e.sport_description}</p>` : ''}
+                <p><strong>Venue:</strong> ${e.venue}</p>
+                <p>${e.venue_city}, ${e.venue_country}</p>
+                ${e.capacity ? `<p><strong>Capacity:</strong> ${e.capacity}</p>` : ''}
+                <p><strong>Teams:</strong> ${e.teams}</p>
+                ${e.team_details ? `<p><strong>Team Details:</strong> ${e.team_details}</p>` : ''}
+                ${e.description ? `<p><strong>Description:</strong> ${e.description}</p>` : ''}
+                <hr>
+            `;
+        }catch(err){ 
+            details.innerHTML='Network error while loading event'; 
+        }
+    }
+</script>
+
+
+
+</body>
+</html>
