@@ -2,10 +2,16 @@
 
 ## how to run
 ```
+cd sports_event_calendar
 npm install
 npm run init
 npm run start
 ```
+## ERD
+
+![Entity Relationship Diagram](./erd.png)
+Here is the database schema used.
+
 I have chosen the backend focused exercise due to my interest. 
 It demonstrates the following:
 - REST Api design with Node.js and Express
