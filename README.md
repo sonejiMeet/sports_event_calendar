@@ -38,7 +38,7 @@ GET /api/venues
 ```
 - Return all sports and venues
 ```
-GET /api/teams
+GET /api/teams?sport_id=
 ```
 - when creating new event, fetch only the teams that play the sport that is selected
 ```
