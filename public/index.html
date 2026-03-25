@@ -4,8 +4,8 @@
 <body onload="show_section('events_section')">
     <h1>Sports events</h1>
 
-    <button type="button" onclick="show_section('events_section')">Events</button>
-    <button type="button" onclick="show_section('admin_section')">Admin</button>
+    <button type="button" onclick="show_section('events_section')">Show all events</button>
+    <button type="button" onclick="show_section('admin_section')">Add an Event</button>
 
 <hr>
 
@@ -15,8 +15,138 @@
     
 </div>
 
-<div id="admin_section">
-    <h2>Event Form</h2>
+<style>
+    #admin_section {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    #admin_section h2 {
+        margin-top: 0;
+    }
+    
+    #admin_section input,
+    #admin_section select,
+    #admin_section textarea {
+        width: 100%;
+        padding: 6px;
+        margin: 4px 0;
+        box-sizing: border-box;
+    }
+    
+    #admin_section button {
+        padding: 6px 12px;
+        margin-right: 8px;
+    }
+    
+    #admin_section legend {
+        font-weight: bold;
+        margin: 16px 0 8px 0;
+    }
+</style>
+
+<div id="admin_section" style="display:none;">
+    <h2>Create Event</h2>
+
+    <form id="createEventForm">
+
+        <p>
+            <label for="title">Title:</label><br>
+            <input type="text" id="title" required>
+        </p>
+
+        <p>
+            <label for="description">Description:</label><br>
+            <textarea id="description" rows="4" cols="50"></textarea>
+        </p>
+
+        <p>
+            <label for="start_datetime">Start Date & Time:</label><br>
+            <input type="datetime-local" id="start_datetime" required>
+        </p>
+
+        <p>
+            <label for="end_datetime">End Date & Time:</label><br>
+            <input type="datetime-local" id="end_datetime" required>
+        </p>
+
+        <legend><strong>Sport</strong></legend>
+
+        <p>
+            <label for="sport_select">Select Sport:</label><br>
+            <select id="sport_select" onchange="toggle_new_sport()">
+                <option value="">-- Select Sport --</option>
+            </select>
+        </p>
+
+        <div id="new_sport_box" style="display:none;">
+            <p>
+                <label for="new_sport_name">New Sport Name:</label><br>
+                <input type="text" id="new_sport_name">
+            </p>
+
+            <p>
+                <label for="new_sport_description">Sport Description:</label><br>
+                <input type="text" id="new_sport_description">
+            </p>
+        </div>
+
+        <legend><strong>Venue</strong></legend>
+
+        <p>
+            <label for="venue_select">Select Venue:</label><br>
+            <select id="venue_select" onchange="toggle_new_venue()">
+                <option value="">-- Select Venue --</option>
+            </select>
+        </p>
+
+        <div id="new_venue_box" style="display:none;">
+            <p>
+                <label for="new_venue_name">New Venue Name:</label><br>
+                <input type="text" id="new_venue_name">
+            </p>
+
+            <p>
+                <label for="new_venue_address">Address:</label><br>
+                <input type="text" id="new_venue_address">
+            </p>
+
+            <p>
+                <label for="new_venue_city">City:</label><br>
+                <input type="text" id="new_venue_city">
+            </p>
+
+            <p>
+                <label for="new_venue_country">Country:</label><br>
+                <input type="text" id="new_venue_country">
+            </p>
+
+            <p>
+                <label for="new_venue_capacity">Capacity:</label><br>
+                <input type="number" id="new_venue_capacity">
+            </p>
+        </div>
+
+        <legend><strong>Teams</strong></legend>
+
+        <p>
+            <button type="button" onclick="load_team_selects()">Use Existing Teams</button>
+            <button type="button" onclick="show_new_teams()">Create New Teams</button>
+        </p>
+
+        <div id="teams_box">
+            <p>Select how you want to add teams above.</p>
+        </div>
+
+        <p>
+            <button type="submit">Create Event</button>
+        </p>
+    </form>
+
     <p id="admin_message"></p>
 </div>
 
@@ -37,13 +167,18 @@
         if (id === 'events_section') {
             load_events();
         }
-        if (id === 'admin_section') {
-            const msg = document.getElementById('admin_message');
-            msg.textContent = 'event form for admin not done yet';
+    
+        if(id === 'admin_section'){
+            load_sports();
+            load_venues();
         }
     }
 
 
+    function to_sql_datetime(value) {
+        return value.replace('T', ' ') + ':00';
+    }
+    
     async function load_events(){
         const events_list = document.getElementById('eventsList');
         
@@ -91,23 +226,233 @@
                 <hr>
                 <p><strong>Start:</strong> ${e.start_datetime}</p>
                 <p><strong>End:</strong> ${e.end_datetime}</p>
+                <hr>
                 <p><strong>Sport:</strong> ${e.sport}</p>
-                ${e.sport_description ? `<p>${e.sport_description}</p>` : ''}
+                ${e.sport_description ? `<p style="color: #808080">${e.sport_description}</p>` : ''}
                 <p><strong>Venue:</strong> ${e.venue}</p>
-                <p>${e.venue_city}, ${e.venue_country}</p>
+                <p><strong>City:</strong> ${e.venue_city} </p> <p><strong>Country:</strong> ${e.venue_country}</p>
                 ${e.capacity ? `<p><strong>Capacity:</strong> ${e.capacity}</p>` : ''}
+                <hr>
                 <p><strong>Teams:</strong> ${e.teams}</p>
                 ${e.team_details ? `<p><strong>Team Details:</strong> ${e.team_details}</p>` : ''}
                 ${e.description ? `<p><strong>Description:</strong> ${e.description}</p>` : ''}
-                <hr>
+                <hr>               
             `;
         }catch(err){ 
             details.innerHTML='Network error while loading event'; 
         }
     }
+
+    
+
+async function load_sports() {
+    const select = document.getElementById('sport_select');
+
+    try {
+        const res = await fetch('/api/sports');
+        const data = await res.json();
+
+        let html = `<option value="">-- Select Sport --</option>`;
+        for (const s of data.sports) {
+            html += `<option value="${s.sport_id}">${s.name}</option>`;
+        }
+        html += `<option value="new" style="font-weight: bold; color: blue;">Add new sport</option>`;
+
+        select.innerHTML = html;
+    } catch (err) {
+        select.innerHTML = `<option value="">Failed to load sports</option>`;
+    }
+}
+
+function toggle_new_sport() {
+    const isNew = document.getElementById('sport_select').value === 'new';
+    document.getElementById('new_sport_box').style.display = isNew ? 'block' : 'none';
+}
+
+
+async function load_venues() {
+    const select = document.getElementById('venue_select');
+
+    try {
+        const res = await fetch('/api/venues');
+        const data = await res.json();
+
+        let html = `<option value="">-- Select Venue --</option>`;
+        for (const v of data.venues) {
+            html += `<option value="${v.venue_id}">${v.name}</option>`;
+        }
+        html += `<option value="new" style="font-weight: bold; color: blue;">Add new venue</option>`;
+
+        select.innerHTML = html;
+    } catch (err) {
+        select.innerHTML = `<option value="">Failed to load venues</option>`;
+    }
+}
+
+function toggle_new_venue() {
+    const isNew = document.getElementById('venue_select').value === 'new';
+    document.getElementById('new_venue_box').style.display = isNew ? 'block' : 'none';
+}
+
+
+async function load_team_selects() {
+    const teamsBox = document.getElementById('teams_box');
+    const sportSelect = document.getElementById('sport_select');
+
+    if (!sportSelect.value || sportSelect.value === 'new') {
+        teamsBox.innerHTML = `<div style="color: #FF0000";> 
+                                Please select an existing sport first to load existing teams.
+                             </div>`;
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/teams?sport_id=' + sportSelect.value);
+        const data = await res.json();
+
+        let options = `<option value="">-- Select Team --</option>`;
+        for (const t of data.teams) {
+            options += `<option value="${t.team_id}">${t.name}</option>`;
+        }
+
+        teamsBox.innerHTML = `
+            <div id="existing_teams_list">
+                <select class="team_select">${options}</select><br>
+                <select class="team_select">${options}</select><br>
+            </div>
+        `;
+    } catch (err) {
+        teamsBox.innerHTML = 'Failed to load teams';
+    }
+}
+
+function add_existing_team(options) {
+    document.getElementById('existing_teams_list').insertAdjacentHTML(
+        'beforeend',
+        `<select class="team_select">${options}</select><br>`
+    );
+}
+
+function show_new_teams() {
+    document.getElementById('teams_box').innerHTML = `
+        <div id="new_teams_list">
+            ${team_block(1)}
+            ${team_block(2)}
+        </div>
+    `;
+}
+const field = id => document.getElementById(id).value.trim();
+
+function setMsg(text, isError = false) {
+    msg.style.color = isError ? 'red' : 'green';
+    msg.textContent = text;
+    if (isError) msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function team_block(n) {
+    return `
+        <div class="team_block" style="border:1px solid #ddd; padding:6px; margin:6px 0;">
+            <strong>Team ${n}</strong><br>
+            <input type="text" id="team_name_${n}" placeholder="Team name"><br>
+            <input type="text" id="team_city_${n}" placeholder="City"><br>
+            <input type="text" id="team_country_${n}" placeholder="Country"><br>
+            <input type="number" id="team_year_${n}" placeholder="Founded year">
+        </div>
+    `;
+}
+
+function collect_sport() {
+    const value = field('sport_select');
+    if (!value) throw new Error('Select a sport');
+    if (value !== 'new') return { id: Number(value) };
+
+    const name = field('new_sport_name');
+    if (!name) throw new Error('Enter new sport name');
+    return { name, description: field('new_sport_description') };
+}
+
+function collect_venue() {
+    const value = field('venue_select');
+    if (!value) throw new Error('Select a venue');
+    if (value !== 'new') return { id: Number(value) };
+
+    const name = field('new_venue_name');
+    if (!name) throw new Error('Enter new venue name');
+    return {
+        name,
+        address:  field('new_venue_address'),
+        city:     field('new_venue_city'),
+        country:  field('new_venue_country'),
+        capacity: document.getElementById('new_venue_capacity').value || ''
+    };
+}
+
+function collect_teams() {
+    const selects = [...document.querySelectorAll('.team_select')];
+    if (selects.length > 0)
+        return selects.filter(s => s.value).map(s => ({ id: Number(s.value) }));
+
+    const teams = [];
+    let n = 1;
+    while (document.getElementById(`team_name_${n}`)) {
+        const name = field(`team_name_${n}`);
+        if (name) teams.push({
+            name,
+            city:         field(`team_city_${n}`),
+            country:      field(`team_country_${n}`),
+            founded_year: document.getElementById(`team_year_${n}`).value || ''
+        });
+        n++;
+    }
+
+    if (teams.length < 2) throw new Error('Create at least 2 teams');
+    return teams;
+}
+
+const form = document.getElementById('createEventForm');
+const msg  = document.getElementById('admin_message');
+
+form.onsubmit = async function(e) {
+    e.preventDefault();
+    try {
+        const res = await fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title:          field('title'),
+                description:    field('description'),
+                start_datetime: to_sql_datetime(field('start_datetime')),
+                end_datetime:   to_sql_datetime(field('end_datetime')),
+                sport:          collect_sport(),
+                venue:          collect_venue(),
+                teams:          collect_teams()
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) { setMsg(data.error || 'Failed', true); return; }
+
+        setMsg('Event created successfully!!');
+        form.reset();
+
+        ['new_sport_box', 'new_venue_box'].forEach(id => {
+            document.getElementById(id).style.display = 'none';
+        });
+        
+        document.getElementById('teams_box').innerHTML = '';
+
+        load_sports();
+        load_venues();
+        load_events();
+    } catch (err) {
+        setMsg(err.message, true);
+    }
+};
+
 </script>
 
 
 
 </body>
 </html>
+

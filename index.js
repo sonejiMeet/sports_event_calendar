@@ -131,22 +131,259 @@ app.get('/api/events/:id', async (req, res) => {
         
 });
 
+app.get('/api/sports', async (req, res) => {
+    try {
+        const rows = await dbAll(`
+            SELECT 
+                sport_id, name, description
+            FROM 
+                Sport
+            ORDER BY 
+                name
+        `);
+
+        res.status(200).json({ sports: rows });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/venues', async (req, res) => {
+    try {
+        const rows = await dbAll(`
+            SELECT 
+                venue_id, name, address, city, country, capacity
+            FROM 
+                Venue
+            ORDER BY 
+                name
+        `);
+
+        res.status(200).json({ venues: rows });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 
+app.get('/api/teams', async (req, res) => {
+    try {
+        const sport_id = Number(req.query.sport_id);
 
-// app.post('/api/events', async (req, res) =>{
-    
-//     try{
+        if (!sport_id) {
+            return res.status(400).json({ error: 'sport_id is required' });
+        }
+        // which teams to get matters, because when inserting a new event, 
+        // in the frontend we give the user option to either select from existing sport or create new one
+        // in case of selecting an existing sport, we only want to allow them to select 2 teams that play
+        // the sport they selected for  obvious reasons...
+        
+        const rows = await dbAll(`
+            SELECT 
+                team_id, name, city, country, founded_year, _sport_id
+            FROM 
+                Team
+            WHERE 
+                _sport_id = ?
+            ORDER BY 
+                name
+        `, [sport_id]);
 
-//         res.json({message: 'Event created successfully'});
+        res.status(200).json({ teams: rows });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
 
-//     }catch(err){
-//         console.error(err.message);
-//         res.status(500).json({error: err.message});
-//     }
 
-// });
+app.post('/api/events', async (req, res) => {
+    try {
+        const { title, description, start_datetime, end_datetime, sport, venue,teams} = req.body;
 
+        if (!title || !start_datetime || !end_datetime || !sport || !venue || !teams || teams.length < 2) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        if(teams.length === 2){
+            if(teams[0].id && teams[1].id && teams[0].id === teams[1].id){
+                return res.status(400).json({error: 'Cannot select the same team twice'});
+            }
+        }
+        
+
+        // get or create sport
+        let sport_id;
+
+        if(sport.id) {
+            const existingSport = await dbGet(
+                `
+                SELECT
+                    sport_id
+                FROM
+                    Sport
+                WHERE
+                    sport_id = ?
+                `,
+                [sport.id]
+            );
+
+            if (!existingSport) {
+                return res.status(400).json({ error: 'Selected sport not found' });
+            }
+
+            sport_id = existingSport.sport_id;
+        } else {
+            const existingSport = await dbGet(
+                `
+                SELECT
+                    sport_id
+                FROM
+                    Sport
+                WHERE
+                    name = ?
+                `,
+                [sport.name]
+            );
+
+            if (existingSport) {
+                sport_id = existingSport.sport_id;
+            } else {
+                const result = await dbRun(
+                    `
+                    INSERT INTO
+                        Sport(name, description)
+                    VALUES
+                        (?, ?)
+                    `,
+                    [sport.name, sport.description || null]
+                );
+                sport_id = result.lastID;
+            }
+        }
+
+
+        // get or create venue
+        let venue_id;
+
+        if(venue.id) {
+            const existingVenue = await dbGet(
+                `
+                SELECT
+                    venue_id
+                FROM
+                    Venue
+                WHERE
+                    venue_id = ?
+                `,
+                [venue.id]
+            );
+
+            if (!existingVenue) {
+                return res.status(400).json({ error: 'Selected venue not found' });
+            }
+
+            venue_id = existingVenue.venue_id;
+        } else {
+            const result = await dbRun(
+                `
+                INSERT INTO
+                    Venue(name, address, city, country, capacity)
+                VALUES
+                    (?, ?, ?, ?, ?)
+                `,
+                [
+                    venue.name,
+                    venue.address || null,
+                    venue.city || null,
+                    venue.country || null,
+                    venue.capacity || null
+                ]
+            );
+            venue_id = result.lastID;
+        }
+
+        // create Event
+        const eventResult = await dbRun(
+            `
+            INSERT INTO
+                Event(start_datetime, end_datetime, title, description, _sport_id, _venue_id)
+            VALUES
+                (?, ?, ?, ?, ?, ?)
+            `,
+            [ 
+                start_datetime, 
+                end_datetime, 
+                title, 
+                description || null, 
+                sport_id, 
+                venue_id 
+            ]
+        );
+        const event_id = eventResult.lastID;
+
+
+        for(const team of teams){
+
+            let team_id;
+
+            if (team.id) {
+                const existingTeam = await dbGet(
+                    `
+                    SELECT
+                        team_id
+                    FROM
+                        Team
+                    WHERE
+                        team_id = ?
+                    `,
+                    [team.id]
+                );
+
+                if (!existingTeam) {
+                    return res.status(400).json({ error: 'Selected team not found' });
+                }
+
+                team_id = existingTeam.team_id;
+            } else {                
+                const result = await dbRun(
+                    `
+                    INSERT INTO
+                        Team (name, city, country, founded_year, _sport_id)
+                    VALUES 
+                        (?, ?, ?, ?, ?)
+                    `,
+                    [
+                        team.name,
+                        team.city || null,
+                        team.country || null,
+                        team.founded_year || null,
+                        sport_id
+                    ]
+                );
+                team_id = result.lastID;
+            }
+
+            await dbRun(
+                `
+                INSERT INTO
+                    Event_Team (_event_id, _team_id)
+                VALUES
+                    (?, ?)
+                `,
+                [event_id, team_id]
+            );
+        }
+
+        res.status(201).json({message: 'Event created successfully', event_id});
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 
 async function insert_data_if_empty() {
