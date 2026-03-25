@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "init": "node scripts/init_database.js",
+    "init": "node db/init_database.js",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },

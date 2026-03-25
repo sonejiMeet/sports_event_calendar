@@ -1,4 +1,4 @@
-import { db_filename } from './scripts/init_database.js';
+import { db_filename } from './init_database.js';
 
 import sql from 'sqlite3';
 

@@ -1,17 +1,19 @@
-For this project, I used AI mainly for brainstorming, small implementation questions
+For this project, I used AI mainly for brainstorming, small implementation questions.
 
-I primarily used the standard web interface version from multiple source to not rely on one chat. 
+I primarily used the standard web interface version from multiple source to not 
+rely on any one chat vendor. 
 
 My main use cases were the following:
+    -> Generating dummy data to insert into our database to avoid manually typing.
 
-Generating dummy data to insert into our database to avoid manually typing 
+    -> Brainstoring approaches on how to implement and structure the project, especially 
+       how to structure event creation flow and how to handle existing vs new data for 
+       during event creation.
 
-Brainstoring approaches on how to implement and structure the project, especially how to structure
-event creation flow and how to handle existing vs new data for during event creation
+    -> Getting help with frontend, like creating form, UI and styling.
 
-Getting help with frontend, like creating form, UI and styling.
+    -> I also constantly questioned chats output and checked it before applying it to 
+       my project so I can verify proper functionality.
 
-I also constantly questioned chats output and checked it before applying it to my project so I can verify 
-proper functionality.
-
-Overall, design of entity relation diagram , backend structure, writing sql query (I did get little guidance though), were descisions I implemented and verified myself.
+Overall, design of entity relation diagram , backend structure, writing sql query (I did get little guidance though), 
+were descisions I implemented and verified myself.
